@@ -1,0 +1,32 @@
+From: Microsoft Security <security@micr0soft-security.example>
+To: user@example.com
+Reply-To: verify-account@external-example.net
+Return-Path: bounce@external-example.net
+Subject: Urgent Account Verification Required
+Date: Mon, 15 Sep 2026 10:30:00 +0530
+Message-ID: <20260915103000.12345@micr0soft-security.example>
+MIME-Version: 1.0
+Content-Type: text/html; charset="UTF-8"
+Authentication-Results: mail.example.com;
+    spf=fail smtp.mailfrom=external-example.net;
+    dkim=fail header.d=micr0soft-security.example;
+    dmarc=fail header.from=micr0soft-security.example
+Received: from suspicious-host.external-example.net (203.0.113.25)
+    by mail.example.com;
+    Mon, 15 Sep 2026 10:29:55 +0530
+Received: from unknown (198.51.100.42)
+    by suspicious-host.external-example.net;
+    Mon, 15 Sep 2026 10:29:48 +0530
+
+<html>
+<body>
+<h2>Account Verification Required</h2>
+<p>Your account requires immediate verification.</p>
+<p>
+<a href="http://account-verification.example/login">
+Verify your account
+</a>
+</p>
+<p>If you do not verify your account, access may be restricted.</p>
+</body>
+</html>
