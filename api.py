@@ -62,7 +62,7 @@ async def add_security_headers(request: Request, call_next):
     return response
     limiter = Limiter(key_func=get_remote_address)
 
-app.state.limiter = limiter
+app.state.limiter = Limiter
 app.add_exception_handler(
     RateLimitExceeded,
     _rate_limit_exceeded_handler
