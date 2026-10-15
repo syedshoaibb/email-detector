@@ -1,0 +1,11 @@
+# Versions pinned to what the model was trained/tested with.
+# (xgboost_header_model.pkl was saved with scikit-learn 1.9.1 - a different
+#  version can break loading.)
+fastapi==0.143.2
+uvicorn==0.54.0
+python-multipart==0.0.32
+pandas==3.0.2
+numpy==2.4.4
+scikit-learn==1.9.1
+xgboost==3.4.1
+joblib==1.5.3
