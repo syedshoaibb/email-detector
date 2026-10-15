@@ -8,7 +8,7 @@ Production:    uvicorn api:app --host 0.0.0.0 --port $PORT
 import hashlib
 import json
 import os
-from pathlib import path
+from pathlib import Path
 from email import policy
 from email.parser import BytesParser
 from email.utils import parsedate_to_datetime
