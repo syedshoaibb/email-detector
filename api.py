@@ -154,7 +154,9 @@ def build_lean_forensic_report(file_bytes, filename, m1_result, forensic_result)
     def text(v, fallback="Not observed"):
         return fallback if v is None or v == "" else str(v)
 
+
     def rows(items):
         return "".join(
             f"<tr><th>{escape(str(k))}</th><td>{escape(text(v))}</td></tr>"
             for k, v in items
+        )
