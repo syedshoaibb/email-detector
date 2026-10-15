@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+from pathlib import Path
+from fastapi.responses import FileResponse
+
+BASE_DIR = Path(__file__).resolve().parent
+
+@app.get("/")
+async def homepage():
+    return FileResponse(BASE_DIR / "index.html")
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Email threat check | SIH26106</title>
