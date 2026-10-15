@@ -8,6 +8,7 @@ Production:    uvicorn api:app --host 0.0.0.0 --port $PORT
 import hashlib
 import json
 import os
+from pathlib import path
 from email import policy
 from email.parser import BytesParser
 from email.utils import parsedate_to_datetime
@@ -28,8 +29,11 @@ try:
 except ImportError:
     m2_analyze_email = None
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+INDEX_FILE = STATIC_DIR / "index.html"
+SAMPLE_FILE = STATIC_DIR / "sample.eml"
+
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 
 app = FastAPI(
@@ -246,7 +250,16 @@ def health():
 
 @app.get("/")
 def home():
-    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+    if not INDEX_FILE.is_file():
+        raise HTTPException(
+            status_code=500,
+            detail=f"Homepage file not found: {INDEX_FILE}"
+        )
+
+    return FileResponse(
+        path=str(INDEX_FILE),
+        media_type="text/html"
+    )
 
 
 @app.post("/api/analyze")
