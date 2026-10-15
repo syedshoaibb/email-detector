@@ -323,7 +323,7 @@ async def analyze_endpoint(
 
         return JSONResponse(content=json_safe(response))
 
-        except HTTPException:
+    except HTTPException:
         raise
 
     except Exception:
