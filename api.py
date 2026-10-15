@@ -30,13 +30,6 @@ try:
     from m2_forensics.forensics import analyze_email as m2_analyze_email
 except ImportError:
     m2_analyze_email = None
-@app.get("/privacy")
-def privacy_page():
-    return FileResponse(STATIC_DIR / "privacy.html")
-
-@app.get("/terms")
-def terms_page():
-    return FileResponse(STATIC_DIR / "terms.html")
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
@@ -55,6 +48,15 @@ app = FastAPI(
     description="AI email threat detection and forensic analysis",
     version="4.2.0",
 )
+
+@app.get("/privacy")
+def privacy_page():
+    return FileResponse(STATIC_DIR / "privacy.html")
+
+@app.get("/terms")
+def terms_page():
+    return FileResponse(STATIC_DIR / "terms.html")
+    
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
