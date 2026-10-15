@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email threat check | SIH26106</title>
+<meta name="description" content="Upload a .eml file and see whether it is a phishing attempt, with the evidence behind the verdict.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f1c26'/%3E%3Cpath d='M6 10h20v12H6z' fill='none' stroke='%238ec5ff' stroke-width='2'/%3E%3Cpath d='M6 10l10 8 10-8' fill='none' stroke='%238ec5ff' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f1c26;
+  --ink-2:#13242f;
+  --panel:#172b3a;
+  --panel-2:#1e3648;
+  --line:#2b4559;
+  --line-soft:#223a4c;
+  --text:#e8eff4;
+  --muted:#93a8b8;
+  --lamp:#8ec5ff;
+  --bad:#ff6f5b;
+  --warn:#f5bd4a;
+  --ok:#63d8a6;
+  --tone:var(--lamp);
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Hanken Grotesk","Segoe UI",system-ui,sans-serif;
+  --data:"Spline Sans Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.page{position:relative;overflow-x:clip}
+.page::before{content:"";position:absolute;inset:0 0 auto 0;height:640px;pointer-events:none;
+  background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+  background-size:64px 64px;opacity:.35;
+  -webkit-mask-image:linear-gradient(#000 20%,transparent);mask-image:linear-gradient(#000 20%,transparent)}
+.wrap{position:relative;width:min(1160px,calc(100% - 40px));margin:0 auto}
+a{color:var(--lamp)}
+:focus-visible{outline:2px solid var(--lamp);outline-offset:3px;border-radius:3px}
+button{font:inherit}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- top bar ---------- */
+.top{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:1.05rem;letter-spacing:-.01em;color:var(--text);text-decoration:none}
+.brand svg{width:26px;height:26px}
+.top nav a{color:var(--muted);text-decoration:none;font-weight:500;font-size:.95rem}
+.top nav a:hover{color:var(--text)}
+
+/* ---------- hero ---------- */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center;padding:56px 0 88px}
+h1{margin:0;font-family:var(--display);font-weight:700;font-variation-settings:"wdth" 88;font-size:clamp(2.3rem,4.6vw,4rem);line-height:1.02;letter-spacing:-.035em}
+.lede{margin:24px 0 0;max-width:30em;color:#b8c9d6;font-size:1.12rem}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:4px;padding:.85rem 1.35rem;font-weight:700;font-size:1rem;cursor:pointer;text-decoration:none;border:1px solid transparent;transition:background .15s,border-color .15s,transform .1s}
+.btn-primary{background:var(--lamp);color:#08202f}
+.btn-primary:hover{background:#b0d6ff}
+.btn-ghost{background:transparent;color:var(--text);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--lamp);background:rgba(142,197,255,.07)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+
+/* specimen: a real suspicious header, being scanned */
+.specimen{margin:0;border:1px solid var(--line);border-radius:6px;background:var(--ink-2);box-shadow:0 30px 60px -30px rgba(0,0,0,.6)}
+.spec-bar{display:flex;justify-content:space-between;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+.spec-bar b{color:var(--bad);font-weight:600}
+.spec-body{position:relative;padding:8px 0;overflow:hidden}
+.scan{position:absolute;left:0;right:0;top:0;height:2px;background:var(--lamp);box-shadow:0 0 18px 4px rgba(142,197,255,.55);opacity:0;animation:sweep 2.6s cubic-bezier(.5,.1,.3,1) .5s 1 both}
+@keyframes sweep{0%{top:0;opacity:1}92%{opacity:1}100%{top:100%;opacity:0}}
+.hrow{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:16px;align-items:start;padding:11px 16px;border-bottom:1px solid var(--line-soft)}
+.hrow:last-child{border-bottom:0}
+.hrow code{font-family:var(--data);font-size:.8rem;line-height:1.6;color:#c4d4df;overflow-wrap:anywhere}
+.hrow code b{color:var(--muted);font-weight:500}
+.hrow mark{background:transparent;color:inherit;border-radius:2px;padding:0 2px;margin:0 -2px;animation:flag .5s ease both;animation-delay:var(--d)}
+@keyframes flag{from{background:transparent;text-decoration:none}to{background:rgba(255,111,91,.2);color:#ffd6cf;text-decoration:underline wavy var(--bad);text-underline-offset:4px}}
+.hnote{font-size:.8rem;line-height:1.35;color:var(--bad);border-left:2px solid var(--bad);padding-left:9px;animation:noteIn .4s ease both;animation-delay:var(--d)}
+@keyframes noteIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.hrow.quiet .hnote{visibility:hidden;animation:none}
+.spec-cap{margin:10px 2px 0;font-size:.85rem;color:var(--muted)}
+
+/* ---------- intake ---------- */
+.section-head h2{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,3vw,2.3rem);letter-spacing:-.025em;line-height:1.1}
+.section-head p{margin:10px 0 0;color:var(--muted);max-width:38em}
+.intake{padding:8px 0 96px}
+.tray{position:relative;margin-top:26px;border:1px solid var(--line);border-radius:6px;background:var(--panel);overflow:hidden}
+.tray::before{content:"";display:block;height:6px;background:repeating-linear-gradient(135deg,var(--bad) 0 14px,transparent 14px 26px,var(--lamp) 26px 40px,transparent 40px 52px)}
+.tray-grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+.drop{display:flex;flex-direction:column;justify-content:center;gap:6px;min-height:230px;margin:24px;padding:28px;border:1.5px dashed #3b5870;border-radius:4px;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.dragging,.drop:focus-within{border-color:var(--lamp);background:rgba(142,197,255,.06)}
+.drop strong{font-family:var(--display);font-size:1.4rem;font-weight:700;letter-spacing:-.015em}
+.drop span{color:var(--muted)}
+.drop .picked{margin-top:14px;font-family:var(--data);font-size:.85rem;color:var(--lamp);overflow-wrap:anywhere}
+.help{padding:26px 28px 26px 8px}
+.help h3{margin:0 0 12px;font-family:var(--display);font-size:1.05rem;font-weight:700}
+.help ul{margin:0;padding:0;list-style:none;display:grid;gap:12px;color:#b8c9d6;font-size:.95rem}
+.help li b{color:var(--text);font-weight:600}
+.tray-foot{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:18px 24px;border-top:1px solid var(--line)}
+.loading{display:none;align-items:center;gap:10px;color:var(--lamp);font-size:.95rem}
+.loading.on{display:flex}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--lamp);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25;transform:scale(.7)}}
+.error{display:none;flex-basis:100%;padding:11px 14px;border:1px solid rgba(255,111,91,.5);border-left:4px solid var(--bad);border-radius:3px;background:rgba(255,111,91,.1);color:#ffd0c8;font-size:.95rem}
+.error.on{display:block}
+
+/* ---------- results ---------- */
+.results{padding:0 0 80px;border-top:1px solid var(--line);padding-top:64px}
+.results[data-tone="ok"]{--tone:var(--ok)}
+.results[data-tone="warn"]{--tone:var(--warn)}
+.results[data-tone="bad"]{--tone:var(--bad)}
+.rgrid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:56px;align-items:start}
+.side{position:sticky;top:24px}
+.gauge{display:block;width:100%;height:auto}
+.g-track,.g-fill{fill:none;stroke-width:12;stroke-linecap:butt}
+.g-track{stroke:var(--panel-2)}
+.g-fill{stroke:var(--tone);stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1),stroke .3s}
+.g-tick{stroke:var(--text);stroke-width:1.5;opacity:.7}
+.g-read{margin-top:-46px;text-align:center;position:relative}
+.g-num{font-family:var(--display);font-weight:800;font-variation-settings:"wdth" 85;font-size:3.4rem;line-height:1;letter-spacing:-.04em;color:var(--tone)}
+.g-cap{color:var(--muted);font-size:.9rem;margin-top:4px}
+.g-legend{margin:14px 0 0;text-align:center;color:var(--muted);font-size:.85rem}
+.stamp{display:table;margin:22px auto 0;border:2px solid var(--tone);border-radius:3px;padding:.15rem .8rem;color:var(--tone);font-family:var(--display);font-weight:800;font-size:1.7rem;letter-spacing:.01em;transform:rotate(-2.5deg);box-shadow:inset 0 0 0 3px var(--ink),inset 0 0 0 4px var(--tone)}
+.stamp.hit{animation:hit .45s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes hit{from{transform:rotate(-9deg) scale(1.6);opacity:0}to{transform:rotate(-2.5deg) scale(1);opacity:1}}
+.vnote{margin:16px 0 0;text-align:center;color:#b8c9d6;font-size:.98rem}
+.fileinfo{margin:6px 0 0;text-align:center;font-family:var(--data);font-size:.78rem;color:var(--muted);overflow-wrap:anywhere}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin:0;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.stats div{background:var(--panel);padding:12px 14px}
+.stats dt{font-size:.82rem;color:var(--muted)}
+.stats dd{margin:2px 0 0;font-family:var(--display);font-weight:700;font-size:1.35rem;letter-spacing:-.02em}
+.signals{margin-top:24px;display:grid;gap:16px}
+.sig-top{display:flex;justify-content:space-between;font-size:.92rem;margin-bottom:6px}
+.sig-top span:last-child{font-family:var(--data);color:var(--muted);font-size:.85rem}
+.track{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden}
+.bar{height:100%;width:0;background:var(--lamp);transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.sig-note{margin:0;color:var(--muted);font-size:.84rem}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.actions .btn{padding:.6rem 1rem;font-size:.92rem}
+
+.ev{padding:0 0 40px}
+.ev + .ev{border-top:1px solid var(--line);padding-top:32px}
+.ev h3{margin:0;font-family:var(--display);font-weight:700;font-size:1.3rem;letter-spacing:-.02em}
+.ev .sub{margin:4px 0 18px;color:var(--muted);font-size:.95rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.empty{color:var(--muted);font-size:.95rem;padding:2px 0}
+
+.kv{width:100%;border-collapse:collapse;font-size:.95rem}
+.kv th,.kv td{text-align:left;vertical-align:top;padding:9px 0;border-bottom:1px solid var(--line-soft)}
+.kv th{width:34%;padding-right:16px;color:var(--muted);font-weight:500}
+.kv td{overflow-wrap:anywhere}
+.kv td.mono,.mono{font-family:var(--data);font-size:.82rem}
+.chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.78rem;font-weight:700;border:1px solid currentColor}
+.chip-ok{color:var(--ok)}.chip-bad{color:var(--bad)}.chip-warn{color:var(--warn)}.chip-low{color:var(--muted)}
+
+.finding{position:relative;padding:12px 14px 12px 18px;border:1px solid var(--line-soft);border-radius:4px;background:var(--ink-2)}
+.finding + .finding{margin-top:8px}
+.finding::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px;background:var(--muted)}
+.finding.high::before{background:var(--bad)}
+.finding.medium::before{background:var(--warn)}
+.finding.low::before{background:var(--lamp)}
+.f-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.f-top b{font-weight:600}
+.f-id{font-family:var(--data);font-size:.75rem;color:var(--muted)}
+.f-desc{margin-top:3px;color:#b8c9d6;font-size:.93rem}
+.f-matches{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.f-matches code{font-family:var(--data);font-size:.76rem;padding:2px 7px;border-radius:3px;background:var(--panel-2);color:#cfe0ec;overflow-wrap:anywhere}
+.f-sev{font-size:.78rem;font-weight:700}
+.f-sev.high{color:var(--bad)}.f-sev.medium{color:var(--warn)}.f-sev.low{color:var(--lamp)}
+
+.links{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.links li{font-family:var(--data);font-size:.8rem;padding:8px 10px;border-radius:3px;background:var(--ink-2);border:1px solid var(--line-soft);overflow-wrap:anywhere;color:#cfe0ec}
+.fine{margin:10px 0 0;color:var(--muted);font-size:.85rem}
+
+.timeline{list-style:none;margin:0;padding:0 0 0 20px;border-left:2px solid var(--line)}
+.timeline li{position:relative;padding:0 0 18px 16px}
+.timeline li::before{content:"";position:absolute;left:-27px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--ink);border:2px solid var(--lamp)}
+.t-time{font-family:var(--data);font-size:.78rem;color:var(--lamp)}
+.t-event{font-weight:600}
+.t-detail{color:var(--muted);font-size:.88rem;overflow-wrap:anywhere}
+
+.paper{border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#fff}
+.paper iframe{display:block;width:100%;min-height:780px;border:0}
+
+footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:.9rem}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px}
+
+/* ---------- small screens ---------- */
+@media (max-width:960px){
+  .hero{grid-template-columns:1fr;gap:40px;padding:24px 0 64px}
+  .tray-grid{grid-template-columns:1fr}
+  .help{padding:0 28px 26px}
+  .drop{margin:20px 20px 12px}
+  .rgrid{grid-template-columns:1fr;gap:36px}
+  .side{position:static}
+  .two{grid-template-columns:1fr;gap:32px}
+}
+@media (max-width:560px){
+  .stats{grid-template-columns:1fr 1fr}
+  .hrow{grid-template-columns:1fr;gap:6px}
+  .hnote{margin-left:2px}
+  .kv th{width:38%}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+}
+@media print{
+  body{background:#fff;color:#000}
+  .page::before,.top,.hero,.intake,.actions,footer,.fine{display:none}
+  .results{border:0;padding:0}
+  .rgrid{display:block}.side{position:static}
+  .stats div,.finding,.links li{background:#fff;border-color:#bbb}
+  .ev h3,.g-num,.stamp,.t-event,.stats dd{color:#000}
+  .sub,.empty,.kv th,.t-detail,.f-desc,.vnote,.g-cap,.g-legend{color:#444}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="wrap top">
+  <a class="brand" href="#top" id="top">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="9" width="22" height="14" rx="1.5" fill="none" stroke="#8ec5ff" stroke-width="2"/><path d="M5.5 10l10.5 8.5L26.5 10" fill="none" stroke="#8ec5ff" stroke-width="2"/><circle cx="25" cy="22" r="4.5" fill="#0f1c26" stroke="#ff6f5b" stroke-width="2"/></svg>
+    Email threat check
+  </a>
+  <nav><a href="#check">Check an email</a></nav>
+</header>
+
+<section class="wrap hero">
+  <div>
+    <h1>Read the email the way an investigator would.</h1>
+    <p class="lede">Drop in a .eml file. The checker reads the headers, the wording and the links, then shows the evidence behind its verdict so you can judge it yourself.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#check">Check an email</a>
+      <button class="btn btn-ghost" type="button" id="heroSample">Use the sample email</button>
+    </div>
+  </div>
+
+  <div>
+    <figure class="specimen" aria-label="Example of a suspicious email header with three problems marked">
+      <div class="spec-bar"><span>sus_email.eml</span><b>3 problems marked</b></div>
+      <div class="spec-body">
+        <div class="scan" aria-hidden="true"></div>
+        <div class="hrow">
+          <code><b>From:</b> Microsoft Security &lt;security@<mark style="--d:.9s">micr0soft-security.example</mark>&gt;</code>
+          <span class="hnote" style="--d:1.1s">Look-alike of microsoft.com</span>
+        </div>
+        <div class="hrow">
+          <code><b>Reply-To:</b> verify-account@<mark style="--d:1.5s">external-example.net</mark></code>
+          <span class="hnote" style="--d:1.7s">Replies go to a different domain</span>
+        </div>
+        <div class="hrow quiet">
+          <code><b>Subject:</b> Urgent Account Verification Required</code>
+          <span class="hnote">&nbsp;</span>
+        </div>
+        <div class="hrow">
+          <code><b>Authentication-Results:</b> <mark style="--d:2.4s">spf=fail; dkim=fail; dmarc=fail</mark></code>
+          <span class="hnote" style="--d:2.6s">All three sender checks failed</span>
+        </div>
+      </div>
+    </figure>
+    <p class="spec-cap">From the sample email bundled with this project.</p>
+  </div>
+</section>
+
+<section class="wrap intake" id="check">
+  <div class="section-head">
+    <h2>Check an email</h2>
+    <p>Analysis runs on this server. Uploaded files are read in memory and are not saved.</p>
+  </div>
+
+  <div class="tray">
+    <div class="tray-grid">
+      <label class="drop" id="dropZone" for="emailFile">
+        <strong>Drop a .eml file here</strong>
+        <span>or click to choose one from your computer</span>
+        <div class="picked" id="fileName">No file selected</div>
+        <input class="sr-only" id="emailFile" type="file" accept=".eml,message/rfc822">
+      </label>
+      <div class="help">
+        <h3>Getting a .eml file</h3>
+        <ul>
+          <li><b>Gmail</b> Open the message, choose the three-dot menu, then Download message.</li>
+          <li><b>Outlook</b> Drag the message to your desktop, or choose File, then Save As.</li>
+          <li><b>Apple Mail</b> Select the message, then File, Save As, and pick Raw Message Source.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tray-foot">
+      <button class="btn btn-primary" id="analyzeButton" type="button">Analyze email</button>
+      <button class="btn btn-ghost" id="sampleButton" type="button">Use the sample email</button>
+      <div class="loading" id="loading" role="status" aria-live="polite"><span class="pulse"></span><span id="stage">Reading headers</span></div>
+      <div class="error" id="errorBox" role="alert"></div>
+    </div>
+  </div>
+</section>
+
+<main class="results" id="results" hidden>
+  <div class="wrap rgrid">
+
+    <aside class="side" aria-label="Verdict">
+      <svg class="gauge" viewBox="0 0 200 112" role="img" aria-label="Threat probability gauge">
+        <path class="g-track" d="M12 100 A88 88 0 0 1 188 100"/>
+        <path class="g-fill" id="gaugeFill" pathLength="100" d="M12 100 A88 88 0 0 1 188 100"/>
+        <line class="g-tick" x1="100" y1="4" x2="100" y2="20"/>
+        <line class="g-tick" x1="167.9" y1="32.1" x2="156.6" y2="43.4"/>
+      </svg>
+      <div class="g-read">
+        <div class="g-num" id="threatProbability">0%</div>
+        <div class="g-cap">threat probability</div>
+      </div>
+      <p class="g-legend">Suspicious from 50%, high risk from 75%.</p>
+
+      <div class="stamp" id="verdictStamp"><span id="verdict">--</span></div>
+      <p class="vnote" id="verdictNote"></p>
+      <p class="fileinfo" id="fileInfo"></p>
+
+
+
+      <div class="actions">
+        <button class="btn btn-ghost" id="printButton" type="button">Print or save as PDF</button>
+        <button class="btn btn-ghost" id="jsonButton" type="button">View raw JSON</button>
+      </div>
+    </aside>
+
+    <div>
+      <section class="ev">
+        <h3>How the score was built</h3>
+        <p class="sub">Three independent signals feed one threat probability.</p>
+        <dl class="stats">
+          <div><dt>Threat</dt><dd id="metricThreat">--</dd></div>
+          <div><dt>Safe</dt><dd id="metricSafe">--</dd></div>
+          <div><dt>Model confidence</dt><dd id="metricConfidence">--</dd></div>
+          <div><dt>Forensic findings</dt><dd id="metricFindings">--</dd></div>
+        </dl>
+
+        <div class="signals">
+          <div>
+            <div class="sig-top"><span>Header model</span><span id="headerPercent">0%</span></div>
+            <div class="track"><div class="bar" id="headerBar"></div></div>
+          </div>
+          <div>
+            <div class="sig-top"><span>Wording model</span><span id="textPercent">0%</span></div>
+            <div class="track"><div class="bar" id="textBar"></div></div>
+          </div>
+          <div>
+            <div class="sig-top"><span>Rules and header checks</span><span id="rulePercent">0%</span></div>
+            <div class="track"><div class="bar" id="ruleBar"></div></div>
+          </div>
+          <p class="sig-note" id="sigNote"></p>
+        </div>
+      </section>
+
+      <section class="ev">
+        <h3>Message</h3>
+        <p class="sub">What the email claims to be.</p>
+        <table class="kv">
+          <tr><th>From</th><td id="emailFrom">--</td></tr>
+          <tr><th>To</th><td id="emailTo">--</td></tr>
+          <tr><th>Subject</th><td id="emailSubject">--</td></tr>
+          <tr><th>Date</th><td id="emailDate">--</td></tr>
+        </table>
+      </section>
+
+      <section class="ev">
+        <h3>Why it was flagged</h3>
+        <p class="sub">Wording, link and header checks that matched.</p>
+        <div id="ruleFindings"></div>
+      </section>
+
+      <section class="ev two">
+        <div>
+          <h3>Sender authentication</h3>
+          <p class="sub">Did the sending server prove it may send for this domain?</p>
+          <div id="authenticationSection"></div>
+        </div>
+        <div>
+          <h3>Delivery path</h3>
+          <p class="sub">Servers the message passed through.</p>
+          <div id="routingSection"></div>
+        </div>
+      </section>
+
+      <section class="ev two">
+        <div>
+          <h3>Links</h3>
+          <p class="sub">Every address found in the message.</p>
+          <div id="urlsSection"></div>
+        </div>
+        <div>
+          <h3>Attachments</h3>
+          <p class="sub">Files carried by the message.</p>
+          <div id="attachmentsSection"></div>
+        </div>
+      </section>
+
+      <section class="ev">
+        <h3>Timeline</h3>
+        <p class="sub">When each server handled the message, oldest first.</p>
+        <div id="timelineSection"></div>
+      </section>
+
+      <section class="ev">
+        <h3>Forensic findings</h3>
+        <p class="sub">Evidence recorded from the message structure.</p>
+        <div id="forensicFindings"></div>
+      </section>
+
+      <section class="ev">
+        <h3>Printable report</h3>
+        <p class="sub">Built from the same uploaded file.</p>
+        <div id="reportContainer"><div class="empty">The report appears here after an analysis.</div></div>
+      </section>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>SIH26106 email threat detection prototype</span>
+    <span id="engineLine"></span>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const VERDICTS = {
+  LOW_RISK:   { label: "Low risk",   tone: "ok",   note: "Nothing here points to a threat." },
+  SUSPICIOUS: { label: "Suspicious", tone: "warn", note: "Be careful with links and requests in this email." },
+  HIGH_RISK:  { label: "High risk",  tone: "bad",  note: "Do not click anything or reply." }
+};
+const STAGES = ["Reading headers", "Reading the wording", "Checking links and attachments", "Writing the report"];
+
+let selectedFile = null;
+let latest = null;
+let stageTimer = null;
+
+/* ---------- helpers ---------- */
+function esc(v) {
+  return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+function pct(v, d = 1) { return num(v).toFixed(d) + "%"; }
+function clamp(n) { return Math.max(0, Math.min(100, n)); }
+function nice(s) { s = String(s || "").replace(/_/g, " ").replace(/\burl\b/gi, "URL").replace(/\bips\b/gi, "IPs").replace(/\bip\b/gi, "IP"); return s.charAt(0).toUpperCase() + s.slice(1); }
+function text(v) { return v !== null && typeof v === "object" ? JSON.stringify(v) : String(v ?? ""); }
+
+function showError(msg) { const b = $("errorBox"); b.textContent = msg; b.classList.add("on"); }
+function clearError() { const b = $("errorBox"); b.textContent = ""; b.classList.remove("on"); }
+
+function countUp(node, to) {
+  if (reduceMotion) { node.textContent = pct(to); return; }
+  const start = performance.now(), dur = 900;
+  (function tick(now) {
+    const t = Math.min(1, (now - start) / dur);
+    node.textContent = pct(to * (1 - Math.pow(1 - t, 3)));
+    if (t < 1) requestAnimationFrame(tick);
+  })(start);
+}
+
+/* ---------- file handling ---------- */
+function setFile(file) {
+  clearError();
+  if (!file) { selectedFile = null; $("fileName").textContent = "No file selected"; return false; }
+  if (!file.name.toLowerCase().endsWith(".eml")) {
+    selectedFile = null;
+    $("fileName").textContent = "No file selected";
+    showError("That file is not a .eml. Export the email as .eml and try again.");
+    return false;
+  }
+  selectedFile = file;
+  $("fileName").textContent = file.name;
+  return true;
+}
+
+const drop = $("dropZone");
+$("emailFile").addEventListener("change", (e) => setFile(e.target.files[0]));
+["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("dragging"); }));
+["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("dragging"); }));
+drop.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
+
+async function loadSample() {
+  clearError();
+  try {
+    const r = await fetch("/static/sample.eml");
+    if (!r.ok) throw new Error();
+    const blob = await r.blob();
+    setFile(new File([blob], "sus_email.eml", { type: "message/rfc822" }));
+    return true;
+  } catch (e) {
+    showError("The sample email could not be loaded from the server.");
+    return false;
+  }
+}
+
+$("sampleButton").addEventListener("click", async () => { if (await loadSample()) analyze(); });
+$("heroSample").addEventListener("click", async () => {
+  $("check").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+  if (await loadSample()) analyze();
+});
+$("analyzeButton").addEventListener("click", analyze);
+
+$("printButton").addEventListener("click", () => window.print());
+$("jsonButton").addEventListener("click", () => {
+  if (!latest) return;
+  const copy = Object.assign({}, latest); delete copy.report_html;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(copy, null, 2)], { type: "application/json" }));
+  window.open(url, "_blank");
+});
+
+/* ---------- loading state ---------- */
+function startLoading() {
+  let i = 0;
+  $("stage").textContent = STAGES[0];
+  $("loading").classList.add("on");
+  stageTimer = setInterval(() => { i = Math.min(i + 1, STAGES.length - 1); $("stage").textContent = STAGES[i]; }, 900);
+}
+function stopLoading() { clearInterval(stageTimer); $("loading").classList.remove("on"); }
+
+/* ---------- analyze ---------- */
+async function analyze() {
+  clearError();
+  if (!selectedFile) { showError("Choose a .eml file first, or use the sample email."); return; }
+  const fd = new FormData();
+  fd.append("file", selectedFile);
+
+  const btn = $("analyzeButton");
+  btn.disabled = true; $("sampleButton").disabled = true;
+  btn.textContent = "Analyzing";
+  startLoading();
+
+  try {
+    const r = await fetch("/api/analyze", { method: "POST", body: fd });
+    let data = {};
+    try { data = await r.json(); } catch (e) { /* non-JSON error page */ }
+    if (!r.ok) throw new Error(data.detail || "The analysis failed. Try again.");
+    latest = data;
+    render(data);
+    const res = $("results");
+    res.hidden = false;
+    animateIn(data.summary || {});
+    setTimeout(() => res.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" }), 60);
+  } catch (e) {
+    console.error(e);
+    showError(e.message === "Failed to fetch" ? "Could not reach the server. Check your connection and try again." : e.message);
+  } finally {
+    stopLoading();
+    btn.disabled = false; $("sampleButton").disabled = false;
+    btn.textContent = "Analyze email";
+  }
+}
+
+/* ---------- render ---------- */
+function setSignal(barId, textId, value) {
+  if (value === null || value === undefined) {
+    $(textId).textContent = "Not loaded";
+    $(barId).style.width = "0%";
+    return;
+  }
+  $(textId).textContent = pct(value);
+  requestAnimationFrame(() => { $(barId).style.width = clamp(num(value)) + "%"; });
+}
+
+function animateIn(s) {
+  const p = clamp(num(s.final_threat_probability));
+  const fill = $("gaugeFill");
+  fill.style.transition = "none";
+  fill.style.strokeDashoffset = 100;
+  void fill.getBoundingClientRect();
+  fill.style.transition = "";
+  requestAnimationFrame(() => { fill.style.strokeDashoffset = 100 - p; });
+  countUp($("threatProbability"), p);
+  const stamp = $("verdictStamp");
+  stamp.classList.remove("hit"); void stamp.offsetWidth; stamp.classList.add("hit");
+}
+
+function render(data) {
+  const s = data.summary || {}, m = data.m1 || {}, e = m.email || {}, r = m.rule_engine || {}, f = data.forensics || {};
+  const v = VERDICTS[s.verdict] || { label: s.verdict || "Unknown", tone: "", note: "" };
+
+  $("results").dataset.tone = v.tone;
+  $("verdict").textContent = v.label;
+  $("verdictNote").textContent = v.note;
+  $("fileInfo").textContent = (data.file && data.file.filename) || "";
+
+  $("metricThreat").textContent = pct(s.final_threat_probability);
+  $("metricSafe").textContent = pct(s.safe_probability);
+  $("metricConfidence").textContent = pct(s.model_confidence, 0);
+  $("metricFindings").textContent = String(s.forensic_findings_count ?? 0);
+
+  setSignal("headerBar", "headerPercent", s.header_probability);
+  setSignal("textBar", "textPercent", s.text_probability);
+  setSignal("ruleBar", "rulePercent", s.rule_probability);
+  const notes = ((m.m1_result || {}).notes || []);
+  $("sigNote").textContent = notes.length ? "The wording model is not loaded on this server, so the score uses the header model and the rules." : "";
+
+  $("emailFrom").textContent = e.sender || "--";
+  $("emailTo").textContent = e.receiver || "--";
+  $("emailSubject").textContent = e.subject || "--";
+  $("emailDate").textContent = e.date || "--";
+
+  renderFindings("ruleFindings", r.findings || [], "No indicators matched in the wording, links or headers.", true);
+  renderAuth(f.authentication || {});
+  renderKV("routingSection", f.routing || {}, "No routing information was extracted.");
+  renderUrls(f.urls || []);
+  renderAttachments(f.attachments || []);
+  renderTimeline(f.timeline || []);
+  renderFindings("forensicFindings", f.forensic_findings || f.findings || [], "No forensic findings were recorded.", false);
+  renderReport(data.report_html);
+}
+
+function sevClass(v) { const s = String(v || "low").toLowerCase(); return ["high", "medium", "low"].includes(s) ? s : "low"; }
+
+function renderFindings(id, list, emptyMsg, isRule) {
+  const box = $(id);
+  if (!list.length) { box.innerHTML = `<div class="empty">${esc(emptyMsg)}</div>`; return; }
+  box.innerHTML = list.map((x) => {
+    const sev = sevClass(x.severity);
+    const isHeader = isRule && x.category === "header";
+    const title = isHeader ? (x.description || "Header check") : isRule ? nice(x.category || "Indicator") : (x.description || x.message || x.title || "Evidence recorded");
+    const desc = isHeader ? "" : isRule ? (x.description || "") : (x.source ? "Source: " + x.source : "");
+    const matches = (x.matches || []).slice(0, 8);
+    const ident = x.rule_id || x.finding_id || x.id || "";
+    return `<div class="finding ${sev}">
+      <div class="f-top"><b>${esc(title)}</b><span class="f-sev ${sev}">${esc(sev)}</span></div>
+      ${desc ? `<div class="f-desc">${esc(desc)}</div>` : ""}
+      ${matches.length ? `<div class="f-matches">${matches.map((t) => `<code>${esc(text(t))}</code>`).join("")}</div>` : ""}
+      ${ident ? `<div class="f-id">${esc(ident)}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function chipFor(value) {
+  const s = String(value).toLowerCase();
+  if (["pass", "bestguesspass"].includes(s)) return "ok";
+  if (["fail", "softfail", "permerror", "temperror"].includes(s)) return "bad";
+  if (["neutral", "none", "not present", "unknown", "missing"].includes(s)) return "warn";
+  return "";
+}
+
+function renderAuth(obj) {
+  const box = $("authenticationSection"), rows = Object.entries(obj);
+  if (!rows.length) { box.innerHTML = `<div class="empty">No authentication results were found in the headers.</div>`; return; }
+  box.innerHTML = `<table class="kv">${rows.map(([k, v]) => {
+    const c = chipFor(v);
+    return `<tr><th>${esc(k)}</th><td>${c ? `<span class="chip chip-${c}">${esc(text(v))}</span>` : esc(text(v))}</td></tr>`;
+  }).join("")}</table>`;
+}
+
+function renderKV(id, obj, emptyMsg) {
+  const box = $(id), rows = Object.entries(obj);
+  if (!rows.length) { box.innerHTML = `<div class="empty">${esc(emptyMsg)}</div>`; return; }
+  box.innerHTML = `<table class="kv">${rows.map(([k, v]) => `<tr><th>${esc(nice(k))}</th><td class="mono">${esc(text(v))}</td></tr>`).join("")}</table>`;
+}
+
+function renderUrls(list) {
+  const box = $("urlsSection");
+  if (!list.length) { box.innerHTML = `<div class="empty">No links were found.</div>`; return; }
+  // Shown as plain text on purpose: never make a suspicious address clickable.
+  box.innerHTML = `<ul class="links">${list.map((u) => `<li>${esc(text(u))}</li>`).join("")}</ul>
+    <p class="fine">Links are plain text on purpose, so they cannot be clicked.</p>`;
+}
+
+function renderAttachments(list) {
+  const box = $("attachmentsSection");
+  if (!list.length) { box.innerHTML = `<div class="empty">This email has no attachments.</div>`; return; }
+  box.innerHTML = `<table class="kv">${list.map((a) => {
+    const size = a.size != null ? ` (${(num(a.size) / 1024).toFixed(1)} KB)` : "";
+    const hash = a.sha256 ? `<div class="mono" style="color:var(--muted)">sha256 ${esc(String(a.sha256).slice(0, 20))}...</div>` : "";
+    return `<tr><th>${esc(a.filename || a.name || "Attachment")}</th><td>${esc(a.content_type || a.type || "unknown type")}${esc(size)}${hash}</td></tr>`;
+  }).join("")}</table>`;
+}
+
+function renderTimeline(list) {
+  const box = $("timelineSection");
+  if (!list.length) { box.innerHTML = `<div class="empty">No timeline events were extracted.</div>`; return; }
+  box.innerHTML = `<ol class="timeline">${list.map((x) => {
+    if (typeof x !== "object" || x === null) return `<li><div class="t-event">${esc(x)}</div></li>`;
+    const when = x.timestamp || x.time || "";
+    const stamp = String(when).replace("T", " ").replace(/\.\d+/, "");
+    return `<li>
+      ${stamp ? `<div class="t-time">${esc(stamp)}</div>` : ""}
+      <div class="t-event">${esc(x.event || x.type || "Event")}</div>
+      ${x.details ? `<div class="t-detail">${esc(text(x.details))}</div>` : ""}
+    </li>`;
+  }).join("")}</ol>`;
+}
+
+function renderReport(html) {
+  const box = $("reportContainer");
+  if (!html) { box.innerHTML = `<div class="empty">The report is not available for this analysis.</div>`; return; }
+  const frame = document.createElement("iframe");
+  frame.title = "Forensic report";
+  frame.setAttribute("sandbox", "");   // no scripts can ever run inside the report
+  frame.srcdoc = html;
+  const paper = document.createElement("div");
+  paper.className = "paper";
+  paper.appendChild(frame);
+  box.replaceChildren(paper);
+}
+
+/* ---------- footer: show which engines are live ---------- */
+fetch("/api/health").then((r) => r.json()).then((h) => {
+  const parts = ["header model", "rules", h.forensics === "m2_forensics" ? "full forensics" : "forensics"];
+  parts.push(h.text_model ? "wording model" : "wording model off");
+  $("engineLine").textContent = "Engines: " + parts.join(", ");
+}).catch(() => {});
+
+})();
+</script>
+</body>
+</html>
