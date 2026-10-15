@@ -1,80 +1,61 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex">
-  <title>Privacy Policy — Email Threat Detection</title>
+  <title>Privacy Policy | SentinelMail</title>
   <style>
-    body { margin: 0; background: #080b16; color: #eef2ff;
-      font: 16px/1.8 system-ui, Arial, sans-serif; }
-    main { max-width: 850px; margin: auto; padding: 32px 22px 60px; }
-    h1, h2 { color: #8bb5ff; line-height: 1.3; }
-    p, li { color: #c3cde0; }
-    a { color: #8bb5ff; }
-    section { border-bottom: 1px solid #263149; padding: 12px 0; }
+    body{margin:0;background:#080d18;color:#e8eef8;font:16px/1.7 Arial,sans-serif}
+    main{max-width:800px;margin:50px auto;padding:28px}
+    h1,h2{color:#70a5ff}a{color:#70a5ff}
+    .note{padding:16px;background:#141e30;border-radius:10px}
   </style>
 </head>
 <body>
 <main>
-  <p><a href="/">← Back to the application</a></p>
+  <p><a href="/">← Back to SentinelMail</a></p>
   <h1>Privacy Policy</h1>
-  <p><strong>Last updated:</strong> October 16, 2026</p>
+  <p>Last updated: October 16, 2026</p>
 
-  <p>This policy explains how the Email Threat Detection prototype may process
-  information when you use the service.</p>
+  <p>This policy explains how SentinelMail, an email threat detection
+  and forensic analysis prototype, may handle information submitted
+  through the application.</p>
 
-  <section>
-    <h2>1. Information submitted</h2>
-    <p>When you upload an email file, the service processes its contents to
-    generate threat-detection results and forensic findings. Emails can contain
-    sender and recipient addresses, message content, URLs, attachments, and
-    other identifying information.</p>
-  </section>
+  <h2>1. Information you submit</h2>
+  <p>When you upload an email file, it may contain email addresses,
+  message content, headers, URLs, IP addresses and attachments or
+  references to them. The application may extract information needed
+  for threat detection and forensic analysis.</p>
 
-  <section>
-    <h2>2. Purpose of processing</h2>
-    <p>Submitted files are used to run the application's detection rules, model
-    analysis, and forensic processing and to return results to the user.</p>
-  </section>
+  <h2>2. How information is used</h2>
+  <p>Submitted information is processed to provide email threat
+  analysis, suspicious-indicator detection and forensic results.
+  Depending on the enabled modules, some indicators may be checked
+  using external services.</p>
 
-  <section>
-    <h2>3. Storage and logs</h2>
-    <p>Do not assume that uploaded data is never stored. Hosting providers,
-    application logs, diagnostic systems, or future application changes may
-    retain some information. The project team must verify actual storage,
-    logging, backups, and retention settings before making a no-storage
-    guarantee.</p>
-  </section>
+  <h2>3. Storage and external services</h2>
+  <p>Data retention, server logs, investigation history and external
+  service processing depend on the application's implementation and
+  hosting configuration. Do not assume uploaded emails are
+  automatically deleted or that no data is logged.</p>
 
-  <section>
-    <h2>4. Third-party infrastructure</h2>
-    <p>The application is hosted using Render. Its infrastructure and related
-    services may process technical information such as connection data and
-    server logs under their applicable policies.</p>
-  </section>
+  <h2>4. Sensitive information</h2>
+  <p>Do not upload confidential, personal, financial or otherwise
+  sensitive emails unless you are authorized to do so and understand
+  how this deployment handles the data.</p>
 
-  <section>
-    <h2>5. Sensitive information</h2>
-    <p>Please do not upload passwords, financial records, confidential business
-    emails, or personal data unless you are authorized to do so and understand
-    the risks of using this prototype.</p>
-  </section>
+  <h2>5. Security</h2>
+  <p>Reasonable safeguards should be used, but no online application
+  can guarantee absolute security.</p>
 
-  <section>
-    <h2>6. Security and retention</h2>
-    <p>Reasonable safeguards should be used to protect the application, but no
-    internet service can guarantee absolute security. The project team should
-    define and follow a retention and deletion policy for any stored data.</p>
-  </section>
+  <h2>6. Changes and contact</h2>
+  <p>This policy may be updated as the prototype changes. For privacy
+  questions, contact the application owner through the official
+  project contact channel.</p>
 
-  <section>
-    <h2>7. Changes and contact</h2>
-    <p>This policy may be updated as the project evolves. For questions, contact
-    the project team through its official project or repository page.</p>
-  </section>
-
-  <p><a href="/">Return to the application</a></p>
+  <p class="note">Before publishing, verify the actual data retention,
+  logging and external-service behavior of your deployment.</p>
 </main>
 </body>
 </html>
