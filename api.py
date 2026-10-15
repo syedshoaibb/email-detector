@@ -323,16 +323,16 @@ async def analyze_endpoint(
 
         return JSONResponse(content=json_safe(response))
 
-    except HTTPException:
+        except HTTPException:
         raise
-    except Exception:
-    import logging
-    logging.exception("Email analysis failed")
-    raise HTTPException(
-        status_code=500,
-        detail="Analysis failed. Please try again later."
-    )
 
+    except Exception:
+        import logging
+        logging.exception("Email analysis failed")
+        raise HTTPException(
+            status_code=500,
+            detail="Analysis failed. Please try again later."
+        )
 
 from pathlib import Path
 from starlette.staticfiles import StaticFiles
