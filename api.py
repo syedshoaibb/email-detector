@@ -8,6 +8,14 @@ Production:    uvicorn api:app --host 0.0.0.0 --port $PORT
 import hashlib
 import json
 import os
+from fastapi import Request
+from fastapi.responses import HTMLResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware import Middleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from pathlib import Path
 from email import policy
 from email.parser import BytesParser
@@ -40,6 +48,24 @@ app = FastAPI(
     title="SIH26106 Email Threat Detection",
     description="AI email threat detection and forensic analysis",
     version="4.1.0",
+)
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=()"
+    )
+    return response
+    limiter = Limiter(key_func=get_remote_address)
+
+app.state.limiter = limiter
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler
 )
 
 
@@ -263,8 +289,11 @@ def home():
 
 
 @app.post("/api/analyze")
-async def analyze_endpoint(file: UploadFile = File(...)):
-    filename = file.filename or ""
+@limiter.limit("10/minute")
+async def analyze_endpoint(
+    request: Request,
+    file: UploadFile = File(...)
+):
 
     if not filename.lower().endswith(".eml"):
         raise HTTPException(status_code=400, detail="Only .eml files are supported.")
@@ -296,9 +325,13 @@ async def analyze_endpoint(file: UploadFile = File(...)):
 
     except HTTPException:
         raise
-    except Exception as exc:
-        print("[ERROR]", repr(exc))
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
+    except Exception:
+    import logging
+    logging.exception("Email analysis failed")
+    raise HTTPException(
+        status_code=500,
+        detail="Analysis failed. Please try again later."
+    )
 
 
 from pathlib import Path
@@ -309,6 +342,43 @@ STATIC_DIR = BASE_DIR / "static"
 
 if not STATIC_DIR.is_dir():
     raise RuntimeError(f"Required static directory missing: {STATIC_DIR}")
+
+@app.get("/terms", include_in_schema=False)
+async def terms_page():
+    return FileResponse(str(STATIC_DIR / "terms.html"))
+
+
+@app.get("/privacy", include_in_schema=False)
+async def privacy_page():
+    return FileResponse(str(STATIC_DIR / "privacy.html"))
+
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException
+):
+    if exc.status_code == 404:
+        # Keep API errors in JSON format.
+        if request.url.path.startswith("/api/"):
+            return JSONResponse(
+                status_code=404,
+                content={"detail": "API endpoint not found"}
+            )
+
+        page = STATIC_DIR / "404.html"
+        if page.is_file():
+            return FileResponse(
+                str(page),
+                status_code=404,
+                media_type="text/html"
+            )
+
+    # Preserve normal handling for other HTTP errors.
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
 
 app.mount(
     "/static",
