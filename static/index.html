@@ -716,6 +716,7 @@ function renderReport(html) {
   box.replaceChildren(paper);
 }
 
+
 /* ---------- footer: show which engines are live ---------- */
 fetch("/api/health").then((r) => r.json()).then((h) => {
   const parts = ["header model", "rules", h.forensics === "m2_forensics" ? "full forensics" : "forensics"];
@@ -724,16 +725,15 @@ fetch("/api/health").then((r) => r.json()).then((h) => {
 }).catch(() => {});
 
 })();
-  <script>
-  // Discourages casual image dragging and right-clicking.
-  // This is not a security boundary; browser tools can still access content.
-  document.querySelectorAll("img").forEach((img) => {
-    img.draggable = false;
-    img.addEventListener("contextmenu", (event) => {
-      event.preventDefault();
-    });
+
+// Discourages casual image dragging and right-clicking.
+// This is not a security boundary; browser tools can still access content.
+document.querySelectorAll("img").forEach((img) => {
+  img.draggable = false;
+  img.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
   });
-</script>
+});
 </script>
 </body>
 </html>
