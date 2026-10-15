@@ -288,7 +288,20 @@ async def analyze_endpoint(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
 
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+from pathlib import Path
+from starlette.staticfiles import StaticFiles
+
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+
+if not STATIC_DIR.is_dir():
+    raise RuntimeError(f"Required static directory missing: {STATIC_DIR}")
+
+app.mount(
+    "/static",
+    StaticFiles(directory=str(STATIC_DIR)),
+    name="static"
+)
 
 
 if __name__ == "__main__":
